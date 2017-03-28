@@ -1,34 +1,41 @@
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Insets;
+
 import java.util.Random;
 
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Insets;
+
 
 public class MyPanel extends JPanel {
+	int numberOfMines;
+	int squaresWithoutMines;
+	int minesFounded;
+	int squareNeightbors;
 	private static final long serialVersionUID = 3426940946811133635L;
 	private static final int GRID_X = 25;
 	private static final int GRID_Y = 25;
 	private static final int INNER_CELL_SIZE = 29;
 	private static final int TOTAL_COLUMNS = 10;
-	private static final int TOTAL_ROWS = 11;   
+	private static final int TOTAL_ROWS = 11;   //Last row has only one cell
 	public int x = -1;
 	public int y = -1;
 	public int mouseDownGridX = 0;
 	public int mouseDownGridY = 0;	
-	public boolean gameOver = false;
-	public  Color[][] colorArray = new Color[TOTAL_COLUMNS][TOTAL_ROWS];
 	public int[][] hiddenMines = new int [TOTAL_COLUMNS][TOTAL_ROWS];
 	public int[][] minesSurroundingOurSquare = new int [TOTAL_COLUMNS][TOTAL_ROWS];
+	public  Color[][] colorArray = new Color[TOTAL_COLUMNS][TOTAL_ROWS];
 	public boolean[][] minesUncovered = new boolean[TOTAL_COLUMNS][TOTAL_ROWS];
+	public static boolean gameIsOver = false;
+	public static boolean youWON = false;
 	
 	Random random = new Random();
-	int surroundingMines;
 	
-	
-	public MyPanel() {   //This is the constructor... this code runs first to initialize
+
+
+	public MyPanel() {   
 		if (INNER_CELL_SIZE + (new Random()).nextInt(1) < 1) {	//Use of "random" to prevent unwanted Eclipse warning
 			throw new RuntimeException("INNER_CELL_SIZE must be positive!");
 		}
@@ -40,55 +47,67 @@ public class MyPanel extends JPanel {
 		}
 		for (int x = 0; x < TOTAL_COLUMNS; x++) {   //Top row
 			colorArray[x][0] = Color.LIGHT_GRAY;
-		//	colorArray[x][0] = Color.BLACK;
+
 		}
-		for (int y = 0; y < TOTAL_ROWS; y++) {   //Left column
+		for (int y = 0; y < 2; y++) {   //Left column
 			colorArray[0][y] = Color.LIGHT_GRAY;
 		}
 		for (int x = 1; x < TOTAL_COLUMNS; x++) {   //The rest of the grid
 			for (int y = 1; y < TOTAL_ROWS; y++) {
 				colorArray[x][y] = Color.WHITE;
 			}
-			
+
 		}
-	
-	
-		for (int x = 1; x < TOTAL_COLUMNS; x++) {   
+
+		this.deployingMines();				
+
+		//Deploys and counts the mines that are near our clicked square.
+		for (int x = 1; x < TOTAL_COLUMNS; x++) {           
 			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
-				if(random.nextInt(30) < 6){
-					hiddenMines[x][y] = 1;               
-				}
-				else{
-					hiddenMines[x][y] = 0;
-					
-				}
-				minesUncovered[x][y] = false;            
-			}
-			}
-			
-		for (int x = 1; x < TOTAL_COLUMNS; x++) {          
-			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
-				surroundingMines = 0;
+				squareNeightbors = 0;
 				for (int m = 1; m < TOTAL_COLUMNS; m++) {          
 					for (int n = 1; n < TOTAL_ROWS - 1; n++) {
 						if(!(x == m &&  y == n)){
-							if(isNeightbor(x, y, m, n)){
-								surroundingMines++;
-						
+							if(minesThatAreNear(x, y, m, n)){
+								squareNeightbors++;
+							}
 						}
-			         }
-                 }
-					
-					minesSurroundingOurSquare[x][y] = surroundingMines;
-			
+					}
+					minesSurroundingOurSquare[x][y] = squareNeightbors;
 				}
 			}			
 		}
 	}
-		
-	
 
+	public void deployingMines(){
+		for (int x = 1; x < TOTAL_COLUMNS; x++) {   // create minimum 16 mines for 81 squares
+			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
+				if(random.nextInt(81) < 16){
+					hiddenMines[x][y] = 1;                
 
+					this.numberOfMines += 1;        // Keeps the count of number of mines
+				}
+				else{
+					hiddenMines[x][y] = 0;
+					this.squaresWithoutMines+= 1;
+
+				}
+				minesUncovered[x][y] = false;            // No uncovered mines at the start
+			}
+		}
+	}
+	public static int getTotalColumns() {
+		return TOTAL_COLUMNS;
+	}
+	public static int getTotalRows() {
+		return TOTAL_ROWS;
+	}
+	public boolean minesThatAreNear(int clickedCellXcoord, int clickedCellYcoord, int mineNearXcoord, int mineNearYcoord ){
+		if(clickedCellXcoord - mineNearXcoord < 2 && clickedCellXcoord - mineNearXcoord > -2 && clickedCellYcoord - mineNearYcoord < 2 && clickedCellYcoord - mineNearYcoord > -2 && hiddenMines[mineNearXcoord][mineNearXcoord] == 1){
+			return true;
+		}
+		return false;
+	}
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
 
@@ -115,10 +134,9 @@ public class MyPanel extends JPanel {
 			g.drawLine(x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)), y1 + GRID_Y, x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)), y1 + GRID_Y + ((INNER_CELL_SIZE + 1) * (TOTAL_ROWS - 1)));
 		}
 
-		//Draw an additional cell at the bottom left
-		//g.drawRect(x1 + GRID_X, y1 + GRID_Y + ((INNER_CELL_SIZE + 1) * (TOTAL_ROWS - 1)), INNER_CELL_SIZE + 1, INNER_CELL_SIZE + 1);
 
 		//Paint cell colors
+
 		for (int x = 0; x < TOTAL_COLUMNS; x++) {
 			for (int y = 0; y < TOTAL_ROWS; y++) {
 				if ((x == 0) || (y != TOTAL_ROWS - 1)) {
@@ -126,27 +144,36 @@ public class MyPanel extends JPanel {
 					g.setColor(c);
 					g.fillRect(x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)) + 1, y1 + GRID_Y + (y * (INNER_CELL_SIZE + 1)) + 1, INNER_CELL_SIZE, INNER_CELL_SIZE);
 				}
-				
+
+
 				if(minesUncovered[x][y] == true){
 					if(hiddenMines[x][y] == 0){
+
+						this.mineSeeker(x, y);    // Checks to see if any near square doesn't has a mine
+
 						g.setColor(Color.GRAY);
 						g.fillRect(x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)) + 1, y1 + GRID_Y + (y * (INNER_CELL_SIZE + 1)) + 1, INNER_CELL_SIZE, INNER_CELL_SIZE);
+
 					}
 					else{
-						g.setColor(Color.BLACK);
+						g.setColor(Color.BLACK);         // Uncovers all mines when we click on one.
 						for (int i = 0; i < TOTAL_COLUMNS; i++) {
 							for (int j = 0; j < TOTAL_ROWS; j++) {
 								if(hiddenMines[i][j]==1){
 									minesUncovered[i][j]=true;
 									g.fillRect(x1 + GRID_X + (i * (INNER_CELL_SIZE + 1)) + 1, y1 + GRID_Y + (j * (INNER_CELL_SIZE + 1)) + 1, INNER_CELL_SIZE, INNER_CELL_SIZE);
-									}
+									
+									gameIsOver = true;
+
 								}
 							}
-					    }
-					
+						}
+					}
+
 				}
-				if(minesUncovered[x][y] == true){
 				
+				if(minesUncovered[x][y] == true){             
+
 					if(hiddenMines[x][y] == 0 && minesSurroundingOurSquare[x][y] != 0){
 						if(minesSurroundingOurSquare[x][y] == 1){
 							g.setColor(Color.BLUE);
@@ -155,30 +182,33 @@ public class MyPanel extends JPanel {
 							g.setColor(Color.GREEN);
 						}
 						else if(minesSurroundingOurSquare[x][y] == 3){
-							g.setColor(Color.RED);
+							g.setColor(Color.MAGENTA);
 						}
 						else if(minesSurroundingOurSquare[x][y] == 4){
-							g.setColor(Color.DARK_GRAY);
-						}
-						else if(minesSurroundingOurSquare[x][y] == 5){
-							g.setColor(Color.PINK);
-						}
-						else if(minesSurroundingOurSquare[x][y] == 6){
 							g.setColor(Color.CYAN);
 						}
-					     g.setFont(new Font("Times New Roman", Font.BOLD, 20));
-					     g.drawString(Integer.toString(minesSurroundingOurSquare[x][y]), x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)) + 5, y1 + GRID_Y + (y * (INNER_CELL_SIZE + 1)) + 20);
+						
+						
+						g.setFont(new Font("Times New Roman", Font.BOLD, 20));
+						g.drawString(Integer.toString(minesSurroundingOurSquare[x][y]), x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)) + 7, y1 + GRID_Y + (y * (INNER_CELL_SIZE + 1)) + 20);
 					}
 				}
 			}
 		}
+
 		
-		if(gameOver == true){
+		if(gameIsOver == true){
 			JOptionPane.showMessageDialog(null, "GAME OVER!");
 			System.exit(0);
 		}
-	
+
+		if(youWON== true){
+			JOptionPane.showMessageDialog(null, "YOU WON");
+			System.exit(0);
+		}
+
 	}
+
 
 	public int getGridX(int x, int y) {
 		Insets myInsets = getInsets();
@@ -230,58 +260,74 @@ public class MyPanel extends JPanel {
 		}
 		return y;
 	}
-	public static int getTotalColumns() {
-		return TOTAL_COLUMNS;
-	}
-	public static int getTotalRows() {
-		return TOTAL_ROWS;
-	}
-	public boolean isNeightbor(int squareX, int squareY, int neightborX, int neightborY ){
-		if(squareX - neightborX < 2 && squareX - neightborX > -2 && squareY - neightborY < 2 && squareY - neightborY > -2 && hiddenMines[neightborX][neightborY] == 1){
-			return true;
-		}
-		return false;
-		
-	}
-	public void resetGame(){
-		
-		for (int x = 1; x < TOTAL_COLUMNS; x++) {   //Generate random mines with 20% of probability for each square.
-			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
-				if(random.nextInt(100) < 20){
-					hiddenMines[x][y] = 1;                // If it is 1, it has a mine. If it is 0, it is empty.
-				}
-				else{
-					hiddenMines[x][y] = 0;
-					
-				}
-				minesUncovered[x][y] = false;            // Initially, all mines will be covered.
-			}
-		}
-		
-			
-		
-			
+	
+	
+	public void minesweeperEnds(){
+		youWON = false;
+		gameIsOver = false;
+		this.numberOfMines = 0;
+		this.squaresWithoutMines = 0;
+		this.minesFounded = 0;
+
+		// Remove all flags
 		for (int x = 1; x < TOTAL_COLUMNS; x++) {          
 			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
-				surroundingMines = 0;
+				if(colorArray[x][y].equals(Color.RED)){
+					colorArray[x][y] = Color.WHITE;
+				}
+			}
+		}
+
+		this.deployingMines();    // deploys mines across the board
+
+		for (int x = 1; x < TOTAL_COLUMNS; x++) {            
+			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
+				squareNeightbors = 0;
 				for (int m = 1; m < TOTAL_COLUMNS; m++) {          
 					for (int n = 1; n < TOTAL_ROWS - 1; n++) {
 						if(!(x == m &&  y == n)){
-							if(isNeightbor(x, y, m, n)){
-								surroundingMines++;
-						
-						}
-			         }
-                 }
-					
-					minesSurroundingOurSquare[x][y] = surroundingMines;
-			
-				}
+							if(minesThatAreNear(x, y, m, n)){
+								squareNeightbors++;
+						    }
+					    }
+				    }    
+
+					minesSurroundingOurSquare[x][y] = squareNeightbors;
+
 				}
 			}
-		
-		
+		}
 	}
-	
-	
+
+
+	public void mineSeeker(int x, int y) { 	
+		//Seeks for any near bombs
+		if(minesSurroundingOurSquare[x][y] == 0) {
+			for(int i=x-1; i<=x+1; i++) {
+				for (int j=y-1; j<=y+1; j++) {
+					if(i < getTotalColumns() && i > 0 && j < getTotalRows() - 1 && j > 0) {
+						if(minesUncovered[i][j]==false){
+							minesUncovered[i][j] = true;
+							this.minesFounded+=1;
+
+							mineSeeker(i, j);
+						}
+					}
+				}
+			}
+		}
+		else{
+			if(x < getTotalColumns() && x > 0 && y < getTotalRows() - 1 && y > 0) {
+				if(minesUncovered[x][y]==false){
+					minesUncovered[x][y] = true;
+					this.minesFounded+=1;
+
+				}
+			}
+		}
+
+		if(this.minesFounded == this.squaresWithoutMines){
+			youWON = true;
+		}
+	}
 }
