@@ -13,21 +13,24 @@ public class MyPanel extends JPanel {
 	private static final int GRID_Y = 25;
 	private static final int INNER_CELL_SIZE = 29;
 	private static final int TOTAL_COLUMNS = 10;
-	private static final int TOTAL_ROWS = 11;   
+	private static final int TOTAL_ROWS = 11;   //Last row has only one cell
 	public int x = -1;
 	public int y = -1;
 	public int mouseDownGridX = 0;
 	public int mouseDownGridY = 0;	
-	public boolean gameOver = false;
+
 	public  Color[][] colorArray = new Color[TOTAL_COLUMNS][TOTAL_ROWS];
 	public int[][] hiddenMines = new int [TOTAL_COLUMNS][TOTAL_ROWS];
 	public int[][] minesSurroundingOurSquare = new int [TOTAL_COLUMNS][TOTAL_ROWS];
 	public boolean[][] minesUncovered = new boolean[TOTAL_COLUMNS][TOTAL_ROWS];
-	
+	public static boolean victory = false;
+	public static boolean lost = false;
+	int numberOfUncoveredMines;
+
 	Random random = new Random();
 	int surroundingMines;
-	
-	
+
+
 	public MyPanel() {   //This is the constructor... this code runs first to initialize
 		if (INNER_CELL_SIZE + (new Random()).nextInt(1) < 1) {	//Use of "random" to prevent unwanted Eclipse warning
 			throw new RuntimeException("INNER_CELL_SIZE must be positive!");
@@ -40,7 +43,7 @@ public class MyPanel extends JPanel {
 		}
 		for (int x = 0; x < TOTAL_COLUMNS; x++) {   //Top row
 			colorArray[x][0] = Color.LIGHT_GRAY;
-		//	colorArray[x][0] = Color.BLACK;
+			//	colorArray[x][0] = Color.BLACK;
 		}
 		for (int y = 0; y < TOTAL_ROWS; y++) {   //Left column
 			colorArray[0][y] = Color.LIGHT_GRAY;
@@ -49,24 +52,26 @@ public class MyPanel extends JPanel {
 			for (int y = 1; y < TOTAL_ROWS; y++) {
 				colorArray[x][y] = Color.WHITE;
 			}
-			
+
 		}
-	
-	
+
+
 		for (int x = 1; x < TOTAL_COLUMNS; x++) {   
 			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
 				if(random.nextInt(30) < 6){
 					hiddenMines[x][y] = 1;               
+					
 				}
 				else{
 					hiddenMines[x][y] = 0;
-					
+
 				}
 				minesUncovered[x][y] = false;            
 			}
-			}
-			
-		for (int x = 1; x < TOTAL_COLUMNS; x++) {          
+		}
+
+
+		for (int x = 1; x < TOTAL_COLUMNS; x++) {         
 			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
 				surroundingMines = 0;
 				for (int m = 1; m < TOTAL_COLUMNS; m++) {          
@@ -74,19 +79,18 @@ public class MyPanel extends JPanel {
 						if(!(x == m &&  y == n)){
 							if(isNeightbor(x, y, m, n)){
 								surroundingMines++;
-						
+							}
 						}
-			         }
-                 }
-					
+					}
+
 					minesSurroundingOurSquare[x][y] = surroundingMines;
-			
+
 				}
 			}			
 		}
 	}
-		
-	
+
+
 
 
 	public void paintComponent(Graphics g) {
@@ -115,10 +119,9 @@ public class MyPanel extends JPanel {
 			g.drawLine(x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)), y1 + GRID_Y, x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)), y1 + GRID_Y + ((INNER_CELL_SIZE + 1) * (TOTAL_ROWS - 1)));
 		}
 
-		//Draw an additional cell at the bottom left
-		//g.drawRect(x1 + GRID_X, y1 + GRID_Y + ((INNER_CELL_SIZE + 1) * (TOTAL_ROWS - 1)), INNER_CELL_SIZE + 1, INNER_CELL_SIZE + 1);
 
 		//Paint cell colors
+		
 		for (int x = 0; x < TOTAL_COLUMNS; x++) {
 			for (int y = 0; y < TOTAL_ROWS; y++) {
 				if ((x == 0) || (y != TOTAL_ROWS - 1)) {
@@ -126,27 +129,35 @@ public class MyPanel extends JPanel {
 					g.setColor(c);
 					g.fillRect(x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)) + 1, y1 + GRID_Y + (y * (INNER_CELL_SIZE + 1)) + 1, INNER_CELL_SIZE, INNER_CELL_SIZE);
 				}
-				
+
+
 				if(minesUncovered[x][y] == true){
 					if(hiddenMines[x][y] == 0){
+						
+						this.inspect(x, y);    // Uncover all neightbours that does'nt have adjacent bombs,
+
 						g.setColor(Color.GRAY);
 						g.fillRect(x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)) + 1, y1 + GRID_Y + (y * (INNER_CELL_SIZE + 1)) + 1, INNER_CELL_SIZE, INNER_CELL_SIZE);
+						
 					}
 					else{
-						g.setColor(Color.BLACK);
+						g.setColor(Color.BLACK);         // Shows all mines when user lose.
 						for (int i = 0; i < TOTAL_COLUMNS; i++) {
 							for (int j = 0; j < TOTAL_ROWS; j++) {
 								if(hiddenMines[i][j]==1){
 									minesUncovered[i][j]=true;
 									g.fillRect(x1 + GRID_X + (i * (INNER_CELL_SIZE + 1)) + 1, y1 + GRID_Y + (j * (INNER_CELL_SIZE + 1)) + 1, INNER_CELL_SIZE, INNER_CELL_SIZE);
-									}
+									
+									lost = true;
+									
 								}
 							}
-					    }
-					
+						}
+					}
+
 				}
-				if(minesUncovered[x][y] == true){
-				
+				if(minesUncovered[x][y] == true){              //Set different colors depending of the number of mines to the numbers
+
 					if(hiddenMines[x][y] == 0 && minesSurroundingOurSquare[x][y] != 0){
 						if(minesSurroundingOurSquare[x][y] == 1){
 							g.setColor(Color.BLUE);
@@ -168,17 +179,30 @@ public class MyPanel extends JPanel {
 						}
 					     g.setFont(new Font("Times New Roman", Font.BOLD, 20));
 					     g.drawString(Integer.toString(minesSurroundingOurSquare[x][y]), x1 + GRID_X + (x * (INNER_CELL_SIZE + 1)) + 5, y1 + GRID_Y + (y * (INNER_CELL_SIZE + 1)) + 20);
-					}
+					
 				}
 			}
 		}
+
 		
-		if(gameOver == true){
-			JOptionPane.showMessageDialog(null, "GAME OVER!");
+
+
+		if(lost == true){
+			JOptionPane.showMessageDialog(null, "SORRY.. GAME OVER!");
 			System.exit(0);
+			//g.setFont(new Font("Tahoma", Font.BOLD, 35));
+			//g.drawString("Game Over!", 70,height-5);
 		}
-	
+		if(victory == true){
+			JOptionPane.showMessageDialog(null, "CONGRATULATIONS! YOU HAVE WON");
+			System.exit(0);
+			//g.setFont(new Font("Tahoma", Font.BOLD, 35));
+			//g.drawString("YOU WIN!!", 70,height-5);
+		}
+		}
+		
 	}
+
 
 	public int getGridX(int x, int y) {
 		Insets myInsets = getInsets();
@@ -241,27 +265,39 @@ public class MyPanel extends JPanel {
 			return true;
 		}
 		return false;
-		
+
 	}
 	public void resetGame(){
+		victory = false;
+		lost = false;
 		
+
+		// Remove all flags
+		for (int x = 1; x < TOTAL_COLUMNS; x++) {          
+			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
+				if(colorArray[x][y].equals(Color.RED)){
+					colorArray[x][y] = Color.WHITE;
+				}
+			}
+		}
+
+
 		for (int x = 1; x < TOTAL_COLUMNS; x++) {   //Generate random mines with 20% of probability for each square.
+
 			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
 				if(random.nextInt(100) < 20){
 					hiddenMines[x][y] = 1;                // If it is 1, it has a mine. If it is 0, it is empty.
 				}
 				else{
 					hiddenMines[x][y] = 0;
-					
+
 				}
 				minesUncovered[x][y] = false;            // Initially, all mines will be covered.
 			}
+			
 		}
-		
-			
-		
-			
-		for (int x = 1; x < TOTAL_COLUMNS; x++) {          
+
+		for (int x = 1; x < TOTAL_COLUMNS; x++) {            
 			for (int y = 1; y < TOTAL_ROWS - 1; y++) {
 				surroundingMines = 0;
 				for (int m = 1; m < TOTAL_COLUMNS; m++) {          
@@ -269,19 +305,35 @@ public class MyPanel extends JPanel {
 						if(!(x == m &&  y == n)){
 							if(isNeightbor(x, y, m, n)){
 								surroundingMines++;
-						
+
+							}
 						}
-			         }
-                 }
-					
+					}
+
 					minesSurroundingOurSquare[x][y] = surroundingMines;
-			
-				}
+
 				}
 			}
-		
+		}
 		
 	}
 	
-	
+	public void inspect(int x, int y) { 	//Recursive method to uncover a chain of tiles that have no surrounding bombs
+		//Check if there aren't any surrounding bombs
+		if(minesSurroundingOurSquare[x][y] == 0) {
+			for(int i=x-1; i<=x+1; i++) {
+				for (int j=y-1; j<=y+1; j++) {
+					//Check if coordinates are inside the grid
+					if(i < getTotalColumns() && i > 0 && j < getTotalRows() - 1 && j > 0) {
+						//Check that tile is uncovered
+						if(minesUncovered[i][j]==false){
+							minesUncovered[i][j] = true;
+							this.numberOfUncoveredMines+=1;
+							inspect(i, j);
+						}
+					}
+				}
+			}
+		}
+	}
 }
